@@ -243,3 +243,63 @@ dotenv.config();
       });
     }
   });
+
+  app.get("/api/gift-cards", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 20;
+      const cursor = req.query.cursor || null; // Get cursor from query params
+      
+      // Build URL with cursor if available
+      let url = `https://playground.runa.io/v2/product?limit=${limit}`;
+      if (cursor) {
+        url += `&after=${cursor}`;
+      }
+  
+      const options = {
+        method: 'GET',
+        headers: {
+          accept: 'application/json',
+          'X-Api-Key': 'XXndGrpp.8U-OejLaQ9tRevVG0m!MtUt2DSm!5qNa'
+        }
+      };
+  
+      const response = await fetch(url, options);
+      const data = await response.json();
+  
+      // Check if we got an error response
+      if (data.type === 'bad_request') {
+        throw new Error(data.message);
+      }
+  
+      // Transform the data
+      const transformedData = data.catalog.map(item => ({
+        id: item.code,
+        name: item.name,
+        imageUrl: item?.gift_card?.assets?.card_image_url || '',
+        iconUrl: item?.gift_card?.assets?.icon_image_url || '',
+        currency: item.currency,
+        minValue: item?.gift_card?.denominations?.minimum_value || '0',
+        maxValue: item?.gift_card?.denominations?.maximum_value || '0',
+        availableValues: item?.gift_card?.denominations?.available_list || [],
+        discount: item.discount_multiplier,
+        categories: item.categories || [],
+        isOrderable: item.is_orderable
+      }));
+  
+      res.json({
+        products: transformedData,
+        pagination: {
+          nextCursor: data.pagination?.cursors?.after || null,
+          prevCursor: data.pagination?.cursors?.before || null,
+          hasMore: !!data.pagination?.cursors?.after
+        }
+      });
+  
+    } catch (error) {
+      console.error("Error fetching gift cards:", error);
+      res.status(500).json({ 
+        message: "Error fetching gift cards",
+        error: error.message 
+      });
+    }
+  });
