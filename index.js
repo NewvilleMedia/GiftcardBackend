@@ -114,7 +114,7 @@ dotenv.config();
       if (existingEmail) {
         return res.status(400).json({
           message: "Email already exists"
-        });
+        }); 
       }
   
       // Hash the password
